@@ -17,10 +17,6 @@ try and make it fit.
 Some times there aren't any numbers left to try, even after swapping numbers around.  In this case,
 the whole row is wiped back to 0s and we start the row over again.
 
-FUTURE PLANS
-I want this "service" available as a simple website.  Someone can input their password, and the script
-to create an Easy, Medium and Difficult version of the same Sudoku board, convert to a PDF that looks
-good, and finally emails to said person so they can work the puzzle via touch device.
 
 """
 
