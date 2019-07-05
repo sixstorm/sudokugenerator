@@ -3,6 +3,7 @@ import random
 from copy import deepcopy
 import copy
 import time
+from fpdf import FPDF
 
 
 """
@@ -17,15 +18,32 @@ try and make it fit.
 Some times there aren't any numbers left to try, even after swapping numbers around.  In this case,
 the whole row is wiped back to 0s and we start the row over again.
 
+Verion 0.15
+
+Currently working on:
+- Generate X number of puzzles
+- Gather stats:  time per puzzle, time for batch job, how many completed
+- Use Pandas to generate a table?
+
+Working:
+- Export boards as 81-length string to text file
+
+
 
 """
 
 global numbers
 global board
+global zeroAttempts
+zeroAttempts = 0
 numbers = 0
 
 def main():
     global board
+    global puzzlesFailed
+    global puzzlesCompleted
+    puzzlesCompleted = 0
+    puzzlesFailed = 0
     start_time = time.time()
     board = generateBoard()  # Create a 9x9 grid of 0s
 
@@ -34,10 +52,20 @@ def main():
         for j in range(0,9):
             # Evaluate number in current cell
             evaluateCell(i,j)
+            # If a row has been zero'd out 5 times, stop and reset
+            if zeroAttempts == 5:
+                print("I can't make this puzzle")
+                puzzlesFailed += 1
+                break
             print("")
     print("All done!")
-    printBoard(board)
+    puzzlesCompleted += 1
     print("This Sudoku board took %s seconds to complete!" % (time.time() - start_time))
+    easyBoard = makeEasy()
+    printBoard(board)
+    exportBoard(board,easyBoard)
+
+    #makePDF()
 
 def evaluateCell(row,col):
     global board
@@ -54,14 +82,6 @@ def evaluateCell(row,col):
 
     # Try each number in numbers to see if it fits in cell
     for randomNumber in numbers:
-
-        # If last number in row to attempt, enable lastAttempt
-        if randomNumber == numbers[-1]:
-            print("Last number in possibilities")
-            lastAttempt = True
-        else:
-            lastAttempt = False
-
         # Take snapshot of the board
         snapshot = copy.deepcopy(board)
 
@@ -79,7 +99,7 @@ def evaluateCell(row,col):
             # Revert snapshot
             board = copy.deepcopy(snapshot)
             # Re-insert randomNumber into numbers
-            if lastAttempt == True:
+            if randomNumber == numbers[-1]:
                 swapAround(row,col,numbers)
                 continue
             continue  # Continue to next number in numbers list
@@ -93,7 +113,7 @@ def evaluateCell(row,col):
             # Revert snapshot
             board = copy.deepcopy(snapshot)
             # Re-insert randomNumber into numbers
-            if lastAttempt == True:
+            if randomNumber == numbers[-1]:
                 swapAround(row,col,numbers)
                 continue
             continue
@@ -107,7 +127,7 @@ def evaluateCell(row,col):
             # Revert snapshot
             board = copy.deepcopy(snapshot)
             # Re-insert randomNumber into numbers
-            if lastAttempt == True:
+            if randomNumber == numbers[-1]:
                 swapAround(row,col,numbers)
                 continue
             continue
@@ -135,16 +155,11 @@ def swapAround(row,col,numbers):
         boxCheck = False
         test1 = False
         test2 = False
-        lastAttempt = False
         # Left to right in current row, test candidate
         print("Pass:",x)
         candidate = board[row][x]
 
         for number in numbers:
-            # Check for last number in numbers list
-            if number == numbers[-1]:
-                lastAttempt = True
-
             # Take snapshot
             snapshot = copy.deepcopy(board)
 
@@ -183,7 +198,7 @@ def swapAround(row,col,numbers):
                 break
             # If we run out of numbers to try
             elif test1 == False or test2 == False:
-                if lastAttempt == True:
+                if number == numbers[-1]:
                     print("Zeroing out row %s column %s ..." % (row,col))
                     zeroOutRow(row,col)
                     break
@@ -196,6 +211,8 @@ def swapAround(row,col,numbers):
 
 def zeroOutRow(row,col):
     global board
+    global zeroAttempts
+
     # Go through row and zero it out
     j = 0
     while j <= col:
@@ -203,8 +220,8 @@ def zeroOutRow(row,col):
         board[row][j] = 0
         j += 1
 
-    print("Look what I did!")
-    printBoard(board)
+    zeroAttempts += 1
+    print("Zero attempts:",zeroAttempts)
 
     # Redo row
     j = 0
@@ -223,70 +240,12 @@ def newNumbers():
 def boxTest(row,col):
     global board
     boxList = []
-    print("[%s][%s]" % (row,col))
-    if row // 3 == 0 and col // 3 == 0:
-        activeBox = 0
-    elif row // 3 == 0 and col // 3 == 1:
-        activeBox = 1
-    elif row // 3 == 0 and col // 3 == 2:
-        activeBox = 2
-    elif row // 3 == 1 and col // 3 == 0:
-        activeBox = 3
-    elif row // 3 == 1 and col // 3 == 1:
-        activeBox = 4
-    elif row // 3 == 1 and col // 3 == 2:
-        activeBox = 5
-    elif row // 3 == 2 and col // 3 == 0:
-        activeBox = 6
-    elif row // 3 == 2 and col // 3 == 1:
-        activeBox = 7
-    elif row // 3 == 2 and col // 3 == 2:
-        activeBox = 8
 
-    if activeBox == 0:
-        for i in range(0,3):
-            for j in range(0,3):
-                boxList.append(board[i][j])
-
-    if activeBox == 1:
-        for i in range(0,3):
-            for j in range(3,6):
-                boxList.append(board[i][j])
-
-    if activeBox == 2:
-        for i in range(0,3):
-            for j in range(6,9):
-                boxList.append(board[i][j])
-
-    if activeBox == 3:
-        for i in range(3,6):
-            for j in range(0,3):
-                boxList.append(board[i][j])
-
-    if activeBox == 4:
-        for i in range(3,6):
-            for j in range(3,6):
-                boxList.append(board[i][j])
-
-    if activeBox == 5:
-        for i in range(3,6):
-            for j in range(6,9):
-                boxList.append(board[i][j])
-
-    if activeBox == 6:
-        for i in range(6,9):
-            for j in range(0,3):
-                boxList.append(board[i][j])
-
-    if activeBox == 7:
-        for i in range(6,9):
-            for j in range(3,6):
-                boxList.append(board[i][j])
-
-    if activeBox == 8:
-        for i in range(6,9):
-            for j in range(6,9):
-                boxList.append(board[i][j])
+    iMin = (row // 3)
+    jMin = (col // 3)
+    for i in range(3*iMin,3*iMin+3):
+        for j in range(3*jMin,3*jMin+3):
+            boxList.append(board[i][j])
 
     # If number is in the box, break loop and go to next number
     if boxList.count(board[row][col]) > 1:
@@ -296,7 +255,6 @@ def boxTest(row,col):
 
 def rowTest(row,col):
     global board
-    # number = board[row].count(board[row][col])
     if board[row].count(board[row][col]) == 1:  # If only 1 instance, return true
         return True
     else:
@@ -321,5 +279,62 @@ def generateBoard():
 def printBoard(board):
     for index, value in enumerate(board):
         print(*value)
+
+def makeEasy():
+    global board
+    easyBoard = copy.deepcopy(board)
+    easyToRemove = 20
+    print("Let's make an easy puzzle")
+
+    for _ in range(easyToRemove):
+        # Get 2 random numbers between 0-8
+        row = random.randint(0,8)
+        column = random.randint(0,8)
+        print(row,column)
+
+        easyBoard[row][column] = 0
+
+    print("")
+    return easyBoard
+
+def exportBoard(board,easyBoard):
+    printBoard(board)
+    print("")
+    printBoard(easyBoard)
+    export, export2 = "", ""
+    exportFile = open("sudokuExport.txt","a")
+    for i in range(0,9):
+        for j in range(0,9):
+            export += str(board[i][j])
+    print(export)
+    for i in range(0,9):
+        for j in range(0,9):
+            export2 += str(easyBoard[i][j])
+    print(export2)
+    exportFile.write(export + ";" + export2 + "\n")
+    exportFile.close()
+
+def makePDF():
+    global board
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Helvetica", size=12)
+    for i in range(0,9):
+        row = ''
+        for j in range(0,9):
+            item = str(board[i][j])
+            if item == '0':
+                row += ' '
+            else:
+                row += item
+                row += ' '
+
+        # item = ' '.join(str(e) for e in board[i])
+        # item.replace('0','')
+        # item = str(board[i])
+        # if item == 0:
+        #     item = ""
+        pdf.cell(0, 10, txt=row, ln=1, align="C")
+    pdf.output("sg-test.pdf")
 
 main()
