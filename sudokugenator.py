@@ -3,7 +3,7 @@ import random
 from copy import deepcopy
 import copy
 import time
-from fpdf import FPDF
+
 
 
 """
@@ -40,10 +40,6 @@ numbers = 0
 
 def main():
     global board
-    global puzzlesFailed
-    global puzzlesCompleted
-    puzzlesCompleted = 0
-    puzzlesFailed = 0
     start_time = time.time()
     board = generateBoard()  # Create a 9x9 grid of 0s
 
@@ -52,20 +48,12 @@ def main():
         for j in range(0,9):
             # Evaluate number in current cell
             evaluateCell(i,j)
-            # If a row has been zero'd out 5 times, stop and reset
-            if zeroAttempts == 5:
-                print("I can't make this puzzle")
-                puzzlesFailed += 1
-                break
             print("")
     print("All done!")
-    puzzlesCompleted += 1
     print("This Sudoku board took %s seconds to complete!" % (time.time() - start_time))
     easyBoard = makeEasy()
     printBoard(board)
     exportBoard(board,easyBoard)
-
-    #makePDF()
 
 def evaluateCell(row,col):
     global board
@@ -85,63 +73,75 @@ def evaluateCell(row,col):
         # Take snapshot of the board
         snapshot = copy.deepcopy(board)
 
-        print("Testing number",randomNumber)
+        print("Let's try",randomNumber)
 
         # Insert randomNumber into current cell and then test
         board[row][col] = randomNumber
-        print("Successfully inserted",board[row][col])
         print("")
         print("Possible numbers:",numbers)
 
-        # See if number is valid in box
-        if boxTest(row,col) == False:
-            print("Box test failed.  Reverting board!")
+        if boxTest(row,col) == False or rowTest(row,col) == False or columnTest(row,col) == False:
+            print("Something failed, trying the next number...")
             # Revert snapshot
             board = copy.deepcopy(snapshot)
-            # Re-insert randomNumber into numbers
-            if randomNumber == numbers[-1]:
-                swapAround(row,col,numbers)
-                continue
-            continue  # Continue to next number in numbers list
-        else:
-            print("Box test check!")
-            boxCheck = True
-
-        # See if number is valid in row
-        if rowTest(row,col) == False:
-            print("Row test failed.  Reverting board!")
-            # Revert snapshot
-            board = copy.deepcopy(snapshot)
-            # Re-insert randomNumber into numbers
             if randomNumber == numbers[-1]:
                 swapAround(row,col,numbers)
                 continue
             continue
-        else:
-            print("Row test check!")
-            rowCheck = True
-
-        # See if number is valid in row
-        if columnTest(row,col) == False:
-            print("Column test failed.  Reverting board!")
-            # Revert snapshot
-            board = copy.deepcopy(snapshot)
-            # Re-insert randomNumber into numbers
-            if randomNumber == numbers[-1]:
-                swapAround(row,col,numbers)
-                continue
-            continue
-        else:
-            print("Column test check!")
-            columnCheck = True
-
-        # Final check
-        if boxCheck == rowCheck == columnCheck == True:
+        elif boxCheck == rowCheck == columnCheck == True:
             print("%s fits in this cell" % (randomNumber))
             numbers.remove(randomNumber)
             printBoard(board)
-        if col == 8:
-            print("Finished with this row...")
+
+        # # See if number is valid in box
+        # if boxTest(row,col) == False:
+        #     print("Box test failed.  Reverting board!")
+        #     # Revert snapshot
+        #     board = copy.deepcopy(snapshot)
+        #     # Re-insert randomNumber into numbers
+        #     if randomNumber == numbers[-1]:
+        #         swapAround(row,col,numbers)
+        #         continue
+        #     continue  # Continue to next number in numbers list
+        # else:
+        #     print("Box test check!")
+        #     boxCheck = True
+        #
+        # # See if number is valid in row
+        # if rowTest(row,col) == False:
+        #     print("Row test failed.  Reverting board!")
+        #     # Revert snapshot
+        #     board = copy.deepcopy(snapshot)
+        #     # Re-insert randomNumber into numbers
+        #     if randomNumber == numbers[-1]:
+        #         swapAround(row,col,numbers)
+        #         continue
+        #     continue
+        # else:
+        #     print("Row test check!")
+        #     rowCheck = True
+        #
+        # # See if number is valid in row
+        # if columnTest(row,col) == False:
+        #     print("Column test failed.  Reverting board!")
+        #     # Revert snapshot
+        #     board = copy.deepcopy(snapshot)
+        #     # Re-insert randomNumber into numbers
+        #     if randomNumber == numbers[-1]:
+        #         swapAround(row,col,numbers)
+        #         continue
+        #     continue
+        # else:
+        #     print("Column test check!")
+        #     columnCheck = True
+        #
+        # # Final check
+        # if boxCheck == rowCheck == columnCheck == True:
+        #     print("%s fits in this cell" % (randomNumber))
+        #     numbers.remove(randomNumber)
+        #     printBoard(board)
+        # if col == 8:
+        #     print("Finished with this row...")
 
         break
 
@@ -222,6 +222,10 @@ def zeroOutRow(row,col):
 
     zeroAttempts += 1
     print("Zero attempts:",zeroAttempts)
+    # If a row has been zero'd out 5 times, stop and reset
+    if zeroAttempts == 20:
+        print("I can't make this puzzle")
+        main()
 
     # Redo row
     j = 0
@@ -314,27 +318,7 @@ def exportBoard(board,easyBoard):
     exportFile.write(export + ";" + export2 + "\n")
     exportFile.close()
 
-def makePDF():
-    global board
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Helvetica", size=12)
-    for i in range(0,9):
-        row = ''
-        for j in range(0,9):
-            item = str(board[i][j])
-            if item == '0':
-                row += ' '
-            else:
-                row += item
-                row += ' '
-
-        # item = ' '.join(str(e) for e in board[i])
-        # item.replace('0','')
-        # item = str(board[i])
-        # if item == 0:
-        #     item = ""
-        pdf.cell(0, 10, txt=row, ln=1, align="C")
-    pdf.output("sg-test.pdf")
-
-main()
+fake = True
+while fake:
+    main()
+    time.sleep(3)
