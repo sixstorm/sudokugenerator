@@ -1,6 +1,8 @@
 # sudokugenerator
 Sudoku Generator
 
+# **THIS REPO HAS BEEN ARCHIVED**
+
 About:  This little project took me a month and 10 different attempts to figure a working algorthm out on my own (very novice Python guy here).
 
 This script creates a complete Sudoku board from scratch.  It starts by creating a 9x9 grid of 0s (2D list), then going through each number (left to right, top to bottom) and testing each cell with random numbers (technically brute force).  
